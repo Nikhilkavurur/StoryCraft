@@ -1,0 +1,2542 @@
+COEN 242 -- BigData
+      Lecture 12
+Find number of distinct names per first letter?
+
+
+
+
+                                              2
+Find number of distinct names per first letter?
+
+
+
+
+                                              3
+Find number of distinct names per first letter?
+
+
+
+
+                                              4
+Find number of distinct names per first letter?
+
+
+
+
+                                              5
+Find number of distinct names per first letter?
+
+
+
+
+                                              6
+Find number of distinct names per first letter?
+
+
+
+
+                                              7
+Find number of distinct names per first letter?
+
+
+
+
+                                              8
+Spark: Scheduling Process
+
+
+         DAG        Task Set   Task
+
+
+
+
+                                      9
+Spark Execution Model
+
+
+
+
+                        10
+Step 1: Create RDDs
+
+
+
+
+                      11
+Step 2: Create Execution Plan
+
+
+
+
+                                12
+Step 3: Schedule Tasks (1)
+
+
+
+
+                             13
+Step 3: Schedule Tasks (2)
+
+
+
+
+                             14
+Step 3: Schedule Tasks (3)
+
+
+
+
+                             15
+Step 3: Schedule Tasks (4)
+
+
+
+
+                             16
+Step 3: Schedule Tasks (5)
+
+
+
+
+                             17
+Today’s Topics
+• Spark SQL
+• Spark Data Frames API
+
+
+
+
+                          18
+Examples of Data-intensive Systems
+
+Relational databases: most popular type of data-intensive system
+(MySQL, Oracle, etc)
+
+Many systems facing similar concerns: message queues, key-
+value stores, streaming systems, ML frameworks, …
+
+
+
+
+                                                             19
+Basic Components of Data-intensive Systems
+
+
+
+
+                                             20
+Examples
+
+
+
+
+           21
+Key Ideas in Relational DBMS
+
+
+
+
+                               22
+Query Execution in Traditional DataBase (1)
+
+             Optimization Techniques: Rule based, Cost models,..
+
+             Rule-based Optimization:
+             •   Rule: Procedure to replace part of the query plan
+                 based on a pattern seen in the plan
+             •   Example: When I see expr OR TRUE for an
+                 expression expr, replace this with TRUE
+
+
+
+
+                                                                 23
+Query Execution in Traditional DataBase (2)
+Result: Simple rules can work together to optimize complex query
+plans (if designed well)
+
+
+
+
+                                                                   24
+Spark Functional API: Challenges
+• Looks high-level, but hides many semantics of computation from
+  engine
+• Functions passed in are arbitrary blocks of code
+• Data stored is arbitrary Java/Python objects
+• Users can mix APIs in suboptimal ways
+
+Engine does not understand the structure of the data in RDDs
+or the semantics of user functions → Limited optimization
+
+
+
+                                                                   25
+Spark SQL: Relational Data Processing in Spark
+
+Efficient library for working with structured data
+ • Two interfaces: SQL for data analysts and external apps, DataFrames
+   for complex programs
+ • Optimized computation and storage underneath
+
+
+
+
+                                                                     26
+Goals of Spark SQL
+• Support relational processing both within Spark programs (on
+  native RDDs) and on external data sources using a programmer
+  friendly API.
+• Provide high performance using established DBMS techniques.
+• Easily support new data sources, including semi-structured data
+  and external databases amenable to query federation.
+• Enable extension with advanced analytics algorithms such as graph
+  processing and machine learning.
+
+
+
+                                                                 27
+Spark SQL
+Uniform way to access structured data
+ • Apps can migrate across Hive, Cassandra, JSON, Parquet, …
+ • Rich semantics allows query pushdown into data sources
+
+
+
+
+                                                               28
+Spark SQL: Examples
+
+JSON:    select user.id, text from tweets
+
+
+JDBC:
+select age from users where lang = “en”
+
+
+Together:
+select t.text, u.age
+from tweets t, users u
+where t.user.id = u.id
+and u.lang = “en”
+
+                                            29
+Programming Interface
+
+
+
+
+                        30
+Spark SQL, DataFrames and DataSets (1)
+• The three abstractions on top of RDDs
+• Efficiently working with structured data
+  ⮚SQL   for data analysts and external apps,
+  ⮚DataFrames for   complex programs
+  ⮚DataSets (best   of both SQL and DataFrames)
+  ⮚Optimized computation     and storage underneath
+• Spark SQL added in 2014, DataFrames in 2015, DataSets in 2016
+
+
+                                                            31
+Spark SQL, DataFrames, and DataSets (2)
+
+
+
+
+ Analysis errors are reported before a distributed job starts
+                                                                32
+  WordCount Example
+            val textFile = sc.textFile("hdfs://...")
+            val counts   = textFile.flatMap(line => line.split(" "))
+  RDD                               .map(word => (word.toLowerCase, 1)) /
+                                    .reduceByKey((accumulator, current) => accumulator+current)
+
+
+
+
+            val df         = sparkSession.read.text("hdfs://...")
+DataFrame   val wordsDF    = df.select(split(df("value")," ").alias("words"))
+            val wordDF     = wordsDF.select(explode(wordsDF("words")).alias("word"))
+            val wordCount = wordDF.groupBy(lower($"word")).count
+
+
+
+            sparkSession.read.text("hdfs://...").as[String]
+ DataSet                .flatMap(_.split(" "))
+                        .groupByKey(_.toLowerCase)
+                        .count()
+
+                                                                                           34
+Spark SQL & DataFrames: Architecture
+
+                 Data
+    SQL
+                Frames
+
+                    Catalyst                 Code
+          Logical   Optimizer   Physical   Generator
+                                                       RDDs
+           Plan                  Plan
+
+
+ Data           Catalog
+Source
+ API                                                          …
+
+                                                              35
+5/14/2020   36
+DataFrames (1)
+• Immutable distributed collection of data
+• Unlike an RDD, data is organized into named columns, like a table
+  in a relational database.
+• Designed to make large data sets processing even easier
+• Allows developers to impose a structure onto a distributed
+  collection of data, allowing higher-level abstraction
+• Provides a domain specific language API to manipulate your
+  distributed data (as SQL)
+• Makes Spark accessible to a wider audience, beyond specialized
+  data engineers.
+                                                                 37
+DataFrames: API
+Based on data frame concept in R, Python
+• Spark is the first to make this declarative
+Integrated with the rest of Spark
+• ML library takes DataFrames as input/output
+• Easily convert RDDs ↔ DataFrames
+
+
+
+
+                                                38
+DataFrames (3)
+• A distributed collection of rows with the same schema
+• Can be constructed from external data sources or RDDs into
+  essentially an RDD of Row objects (SchemaRDDs as of Spark < 1.3)
+• Supports relational operators (e.g. where, groupby) as well as Spark
+  operations.
+• Evaluated lazily → unmaterialized logical plan
+
+
+
+
+                                                                    39
+DataFrames: Data Model
+• Nested data model based on Hive for tables and DataFrames
+• Supports both primitive SQL types (boolean, integer, double,
+  decimal, string, data, timestamp) and complex types (structs,
+  arrays, maps, and unions); also user defined types.
+• First class support for complex data types
+
+
+
+
+                                                                  40
+DataFrame Operations
+• Relational operations (select, where, join, groupBy) via a DSL
+• Operators take expression objects
+• Operators build up an abstract syntax tree (AST), which is then
+  optimized by Catalyst.
+
+
+
+
+                                                                    41
+Advantages over Relational Query Languages
+• Holistic optimization across functions composed in different
+  languages.
+• Control structures (e.g. if, for)
+• Logical plan analyzed eagerly → identify code errors associated
+  with data schema issues on the fly.
+
+
+
+
+                                                                    42
+Querying Native Datasets
+• Infer column names and types directly from data objects (via reflection in
+  Java and Scala and data sampling in Python, which is dynamically typed)
+• Native objects accessed in-place to avoid
+  expensive data format transformation.
+• Benefits:
+  ⮚   Run relational operations on existing Spark programs.
+  ⮚   Combine RDDs with external structured data
+
+                 case class User(name: String , age: Int)
+                 // Create an RDD of User objects
+                 usersRDD = spark.parallelize(
+                 List(User("Alice", 22), User("Bob", 19)))
+                 // View the RDD as a DataFrame
+                 usersDF = usersRDD.toDF
+                                                                               43
+User Defined Functions
+• Easy extension of limited operations supported.
+• Allows inline registration of UDFs
+     •   Compare with Pig, which requires the UDF to be written in a Java
+         package that’s loaded into the Pig script.
+• Can be defined on simple data types or entire tables.
+• UDFs available to other interfaces after registration
+
+
+
+
+                                                                            44
+Spark SQL: Summary
+
+
+
+
+                     45
+DataFrame API
+
+Language-integrated declarative API
+   • Schema inference for semi-structured data
+   • Allows direct access to JVM objects
+   • Supports complex types like vectors & Easy to add new types
+
+
+
+
+                                                                   46
+Catalyst Optimizer
+
+                 Data
+    SQL
+                Frames
+
+                    Catalyst               Code
+          Logical   Optimize   Physical   Generato
+                                             r       RDDs
+           Plan         r       Plan
+
+ Data           Catalog
+Source
+ API                                                        …
+
+                                                            47
+DataFrames: Example Optimization
+users.join(events, users("id") === events("uid"))
+      .filter(events("date") > "2015-01-01")
+
+
+
+
+                                                    48
+Performance
+
+
+
+
+              49
+RDDs and DataFrames (1)
+• DataFrame = RDD + Schema
+• Creating a DataFrame from a RDD
+
+
+
+
+                                    50
+RDDs and DataFrames (2)
+• DataFrames are built on RDDs
+  ⮚Base RDDs contain Row objects
+  ⮚ DataFrame to RDD: Use “rdd” to get the underlying RDD
+
+
+
+
+                                                            51
+RDDs and DataFrames (3)
+• Row RDDs have all the standard Spark actions and
+  transformations
+  ⮚Actions—collect, take, count, and so on
+  ⮚Transformations—map, flatMap, filter, and so on
+• Row RDDs can be transformed into Pair RDDs to use map-
+  reduce methods
+• DataFrames also provide convenience methods for
+  converting to RDDs such as map, flatMap and foreach
+
+
+                                                           52
+Working with Row Objects
+Python
+• Column names are object attributes
+• row.age—return age column value from row
+
+Scala
+• Use Array-like syntax to return values with type Any
+   ⮚ row(n)—returns   element in the nth column
+   ⮚ row.fieldIndex("age")—index of the age column
+
+• Use methods to get correctly typed values: row.getAs[Long]("age")
+• Use type-specific get methods to return typed values
+   ⮚ row.getString(n)—returns nth column as a string
+   ⮚ row.getInt(n)—returns nth column as an integer                   53
+Extracting Data from Rows
+
+
+
+
+                            54
+When Should Use DataFrames?
+• Rich semantics, high-level abstractions, and domain specific APIs
+• Demands high-level expressions, filters, maps, aggregation,
+  averages, sum, SQL queries, columnar access on semi-structured
+  data
+• Unification and simplification of APIs across Spark Libraries.
+• R and Python users
+
+
+
+
+                                                                      55
+Spark SQL & DataFrames
+    Challenges                                   Solutions
+• Perform ETL to and from           • A DataFrame API → Perform
+  various (semi- or unstructured)     relational operations on both
+  data sources                        external data sources and Spark’s
+• Perform advanced analytics          built-in RDDs
+  (e.g. machine learning, graph     • A highly extensible optimizer,
+  processing) that are hard to        Catalyst, that uses features of Scala
+  express in relational systems.      to add composable rule, control
+                                      code gen., and define extensions
+
+
+                                                                          56
+Summary
+• Flexibility & Type-safety ← RDDs
+• Simple to use & Performance ← Spark SQL & DataFrames
+• Performance & Type-safety ← DataSets
+
+Some Other Important Concepts
+•   Closures -- executing locals and cluster mode
+•   Accumulators -- sharing variables across nodes
+•   Shuffle operations -- performance impact?
+•   Memory Usage (Tuning, Optimization) https://spark.apache.org/docs/latest/tuning.html
+•   Spark SQL & DataSets & DataFrames
+     • https://spark.apache.org/docs/latest/sql-programming-guide.html#sql)
+     • https://databricks.com/blog/2016/07/14/a-tale-of-three-apache-spark-apis-rdds-dataframes-and-
+       datasets.html                                                                                   57
+Next Topics
+• Spark Streaming
+
+
+
+
+                    58
+  Catalyst Optimizer
+
+                                     Logical        Physical                                       Code
+                      Analysi
+                                   Optimizatio      Planning                                     Generatio
+                        s                                                                           n
+ SQL AST                               n
+
+
+
+
+                                                                          Cost Model
+            Unresolved                       Optimized         Physical                  Selected
+                             Logical Plan                                                                   RDDs
+            Logical Plan                    Logical Plan        Plans                  Physical Plan
+DataFrame
+
+                       Catalog
+
+
+
+                DataFrames and SQL share the same optimization/execution
+                pipeline
+
+
+
+                                                                                                       59
+COEN 242 -- BigData
+      Lecture 11
+Announcements
+● Midterm-2 (05/18)
+    ○   11 questions, 15 points (MCQ, True/False)
+
+    ○   40 mins, 8:00am to 8:40am
+    ○   Syllabus: topics by 05/16, no topics of Midterm-1 (or Quiz-1)
+
+● Final (06/01)
+    ○   Syllabus (all the topics by 05/30)
+
+    ○   20 points, (MCQ, True/False)
+
+
+
+
+                                                                        61
+Recap (Spark)
+• MapReduce greatly simplified “big data” analysis           •   New fundamental abstraction RDD
+  on large, unreliable clusters                              •   Easy to extend with new operators
+• But as soon as it got popular, users wanted more:          •   Lineage Graph → Handles Failures
+  ⮚   More complex, multi--stage applications                •   Immutability → Caching, Thread-safe
+      (e.g. iterative machine learning & graph processing)
+                                                             •   In memory → Performance
+  ⮚   More interactive ad-hoc queries
+
+• Complex apps and interactive queries both need             • Spark Context →Entry point to the API,
+  one thing that MapReduce lacks → Efficient                   works as a client to cluster
+  primitives for data sharing                                • Operations: Transformations & Actions
+• In MapReduce, the only way to share data across            • Transformations are done lazily
+  jobs is stable storage → slow                              • Data Locality: Workers should manager
+                                                               local data (same as MapReduce)
+
+
+                                                                                                   62
+Today’s Topics
+• Intro to Spark Scheduling & Spark Programming
+
+• Parallel Processing in Spark
+
+• Running a Spark Application
+
+• RDDs Persistence and Storage Levels
+
+
+
+
+                                                  63
+Life of a Job in Spark: Scheduling Process
+
+
+         DAG          Task Set      Task
+
+
+
+
+                                             64
+Spark: Key Techniques for Performance
+• Spark is an “execution engine → computes RDDs” but also decides when
+ to perform the actual computation, where to place tasks (on the
+ Cluster), and whether to cache RDD output or not.
+• Avoids recomputing an RDD by saving its output if it will be needed
+ again, and to arrange for tasks to run close to these cached RDDs (or in a
+ place where later tasks will use the same RDD output)
+
+
+
+
+                                                                              65
+Spark Operations
+
+Two types of operations
+• Transformations: Define a
+  new RDD based on current
+  RDD(s)
+• Actions: return values
+
+
+
+
+  5/13/2020                   67
+Some Other General RDD Operations (1)
+•Single-RDD Transformations
+ ⮚   flatMap -- maps one element in the base RDD to multiple elements
+ ⮚   distinct -- filter out duplicates
+ ⮚   sortBy -- use provided function to sort
+•Multi-RDD Transformations
+ ⮚   intersection -- create a new RDD with all elements in both original
+     RDDs
+ ⮚   union -- add all elements of two RDDs into a single new RDD
+ ⮚   zip -- pair each element of the first RDD with the corresponding
+     element of the second
+                                                                           68
+Some Other General RDD Operations (2)
+• Other RDD operations
+  ⮚ first – return the first element of the RDD
+  ⮚ foreach – apply a function to each element in an RDD
+
+  ⮚ top(n) – return the largest n elements using natural ordering
+
+• Sampling operations
+  ⮚ sample – create a new RDD with a sampling of elements
+  ⮚ takeSample – return an array of sampled elements
+
+• Double RDD operations
+  ⮚   Statistical functions, e.g., mean, sum, variance, stdev
+
+                                                                    69
+Spark Programming: Creating RDDs
+# Turn a Python collection into an RDD
+mycollection = sc.parallelize([1, 2, 3])
+
+# Load text file from local FS, HDFS
+localfile = sc.textFile(“file.txt”)
+hdfsfile =sc.textFile(“hdfs://namenode:9000/path/file”)
+
+# Use existing Hadoop InputFormat (Java/Scala only)
+newfile = sc.hadoopFile(keyClass, valClass, inputFmt, conf)
+
+
+
+
+                                                          70
+Spark Programming: Transformations
+nums = sc.parallelize([1, 2, 3])
+
+# Pass each element through a function
+squares = nums.map(lambda x: x*x) // {1, 4, 9}
+
+# Keep elements passing a predicate
+even = squares.filter(lambda x: x % 2 == 0) // {4}
+
+
+map vs flatMap
+
+
+                                                     71
+Example: flatMap and distinct
+
+
+
+
+                                72
+Spark Programming: Actions
+nums = sc.parallelize([1, 2, 3]) 🡪   Transformation
+
+# Retrieve RDD contents as a local collection
+nums.collect() # => [1, 2, 3]
+
+# Return first K elements
+nums.take(2) # => [1, 2]
+
+# Count number of elements
+nums.count() # => 3
+
+# Merge elements with an associative function
+nums.reduce(lambda x, y: x + y) # => 6
+
+                                                      73
+Spark Programming: Working with Key-value Pairs
+Spark’s “distributed reduce” transformations operate on RDDs of key-value pairs
+
+Python:   pair = (a, b)
+           pair[0] # => a
+           pair[1] # => b
+
+
+Scala:    val pair = (a, b)
+           pair._1 // => a
+          pair._2 // => b
+
+Java: Tuple2 pair = new Tuple2(a, b);
+          pair._1 // => a
+          pair._2 // => b
+
+                                                                                  74
+Spark Programming: Key-Value Operations
+
+pets = sc.parallelize([(“cat”, 1), (“dog”, 1), (“cat”, 2)])
+
+pets.reduceByKey(lambda x, y: x + y)   # => {(cat, 3), (dog, 1)}
+
+pets.groupByKey()    # => {(cat, [1, 2]), (dog, [1])}
+
+pets.sortByKey()     # => {(cat, 1), (cat, 2), (dog, 1)}
+
+
+
+
+                                                              75
+Example: Word Count
+lines = sc.textFile(“a_text_file.txt”)
+words = lines.flatMap(lambda line: line.split(“ “))
+wordmap = words.map(lambda word: (word, 1)
+wordcount = wordmap.reduceByKey(lambda x, y: x + y)
+
+
+
+
+                                                      77
+Example: Spark Streaming
+
+
+
+Represents streams as a series of RDDs over time (typically sub second
+intervals, but it is configurable)
+
+val spammers = sc.sequenceFile(“hdfs://spammers.seq”)
+sc.twitterStream(...)
+   .filter(t => t.text.contains(“Santa Clara University”))
+   .transform(tweets => tweets.map(t => (t.user, t)).join(spammers))
+   .print()
+
+                                                                     78
+Spark: Combining Libraries (Unified Pipeline)
+# Load data using Spark SQL
+points = spark.sql(“select latitude, longitude from tweets”)
+
+
+# Train a machine learning model
+model = KMeans.train(points, 10)
+
+
+# Apply it to a stream
+sc.twitterStream(...)
+  .map(lambda t: (model.predict(t.location), 1))
+  .reduceByWindow(“5s”, lambda a, b: a + b)
+
+
+
+                                       HTTP://WWW.CS.CORNELL.EDU/COURSES/CS5412/2018SP   79
+Spark: Setting the Level of Parallelism
+All the pair RDD operations take an optional second parameter for
+number of tasks
+
+words.reduceByKey(lambda x, y: x + y, 5)
+words.groupByKey(5)
+visits.join(pageViews, 5)
+
+
+
+
+                                                                    80
+Example: Multi-RDD Transformations
+
+
+
+
+                                     81
+RDDs and DataTypes
+• RDDs can hold any type of element
+  ⮚ Primitive types: integers, characters, booleans, etc.
+  ⮚ Sequence types: strings, lists, arrays, tuples, dicts, etc. (including
+    nested data types)
+  ⮚ Scala/Java Objects (if serializable)
+
+  ⮚ Mixed types
+
+• Some types of RDDs have additional functionality
+  ⮚ Pair RDDs: RDDs consisting of Key-Value pairs
+  ⮚ Double RDDs: RDDs consisting of numeric data
+
+
+
+                                                                             82
+Creating RDDs From Collections
+• Create RDDs from collections instead of files
+  ⮚   sc.parallelize(collection)
+
+
+
+
+• Useful
+   ⮚ testing
+   ⮚Generating data programmatically
+                                                  83
+Creating RDDs From Files (1)
+• For file-based RDDs, use SparkContext.textFile
+   ⮚ Accepts a single file, a wildcard list of files, or a comma-separated list of files
+   ⮚ Examples
+
+         o sc.textFile("myfile.txt")
+         o sc.textFile("mydata/*.log")
+         o sc.textFile("myfile1.txt,myfile2.txt")
+   ⮚   Each line in the file(s) is a separate record in the RDD
+• Files are referenced by absolute or relative URI
+   ⮚   Absolute URI:
+         o   file:/home/training/myfile.txt
+         o   hdfs://localhost/loudacre/myfile.txt
+   ⮚   Relative URI (uses default file system): myfile.txt
+                                                                                           84
+Creating RDDs From Files (2)
+• textFile maps each line in a file to a separate RDD element
+• textFile only works with line-delimited text files
+
+
+
+
+• What about other formats?
+
+
+
+                                                                85
+Creating RDDs From Files (3)
+• sc.textFile maps each line in a file to a
+  separate RDD element
+   ⮚   What about files with a multi-line input format,
+       e.g., JSON or XML?
+
+• sc.wholeTextFiles (directory) maps entire
+  contents of each file in a directory to a single
+  RDD element
+• Works only for small files (elements must fit in
+  memory)
+
+
+
+
+                                                          86
+Input and Output Formats
+• Spark uses MapReduce InputFormat and OutputFormat Java classes
+• Some examples
+   ⮚ TextInputFormat / TextOutputFormat – newline delimited text files
+   ⮚ SequenceInputFormat / SequenceOutputFormat
+
+   ⮚   FixedLengthInputFormat
+• Many implementations available in additional libraries
+   ⮚   e.g. AvroInputFormat / AvroOutputFormat in the Avro library
+
+
+
+
+                                                                         87
+Today’s Topics
+• Intro to Spark Scheduling & Spark Programming
+
+• Parallel Processing in Spark
+
+• Running a Spark Application
+
+• RDDs Persistence and Storage Levels
+
+
+
+
+                                                  88
+Supported Cluster Resource Managers
+• Hadoop YARN
+  ⮚   Most common for production sites
+  ⮚   Allows sharing cluster resources with other applications (e.g.,
+      MapReduce, Impala)
+• Apache Mesos: First platform supported by Spark (now used
+  less often)
+• Spark Standalone: included with Spark (limited functionality)
+
+
+
+                                                                        89
+Spark & YARN (1)
+
+
+
+
+                   90
+Spark & YARN (2)
+
+
+
+
+                   91
+Spark & YARN (3)
+
+
+
+
+                   92
+Life of a Job in Spark: Scheduling Process
+
+
+         DAG          Task Set      Task
+
+
+
+
+                                             93
+RDDs on a Cluster
+• Resilient Distributed Datasets
+   ⮚   Data is partitioned across executors
+   ⮚   This is what makes RDDs distributed
+   ⮚   Spark assigns tasks to process a partition
+       to the executor managing that partition
+• Partitioning is done automatically by Spark
+   ⮚   In some cases, you can control how many
+       partitions are created
+
+                                                    94
+HDFS and Data Locality (1)
+
+
+
+
+                             95
+HDFS and Data Locality (2)
+
+
+
+
+                             96
+HDFS and Data Locality (3)
+
+
+
+
+                             97
+HDFS and Data Locality (4)
+
+
+
+
+                             98
+HDFS and Data Locality (5)
+
+
+
+
+                             99
+HDFS and Data Locality (6)
+
+
+
+
+                             100
+Example: Average Word Length by Letter (1)
+
+
+
+
+                                             101
+Example: Average Word Length by Letter (2)
+
+
+
+
+                                             102
+Example: Average Word Length by Letter (3)
+
+
+
+
+                                             103
+Example: Average Word Length by Letter (4)
+
+
+
+
+                                             104
+Example: Average Word Length by Letter (5)
+
+
+
+
+                                             105
+Spark Stage
+• Operations that can run on the same partition are executed in stages
+• Tasks within a stage are pipelined together
+• Developers should be aware of stages to improve performance
+
+
+
+
+                                                                   106
+Word Average Length Stages (1)
+
+
+
+
+                                 107
+Word Average Length Stages (2)
+
+
+
+
+                                 108
+Word Average Length Stages (3)
+
+
+
+
+                                 109
+Word Average Length Stages (4)
+
+
+
+
+                                 110
+Summary of Spark Terminology
+• Job – a set of tasks executed as a result of an action
+• Stage – a set of tasks in a job that can be executed in parallel
+• Task – an individual unit of work sent to one executor
+• Application – can contain any number of jobs managed by a single driver
+
+
+
+
+                                                                     111
+How Spark Calculates Stages?
+• Spark constructs a DAG of RDD dependencies
+• Narrow dependencies
+  ⮚ Only one child depends on the RDD
+  ⮚ No shuffle required between nodes
+
+  ⮚ Can be collapsed into a single stage
+
+  ⮚ e.g., map, filter, union
+
+• Wide (or Shuffle) dependencies
+  ⮚ Multiple children depend on the RDD
+  ⮚ Defines a new stage
+
+  ⮚ e.g., reduceByKey, join, groupByKey
+
+                                               112
+Viewing the Stages using toDebugString (scala)
+
+
+
+
+                                            113
+Viewing the Stages using toDebugString (python)
+
+
+
+
+                                            114
+Spark Task Execution (1)
+
+
+
+
+                           115
+Spark Task Execution (2)
+
+
+
+
+                           116
+Spark Task Execution (3)
+
+
+
+
+                           117
+Spark Task Execution (4)
+
+
+
+
+                           118
+Spark Task Execution (5)
+
+
+
+
+                           119
+Spark Task Execution (6)
+
+
+
+
+                           120
+Spark Task Execution (7)
+
+
+
+
+                           121
+Controlling the Level of Parallelism
+• “Wide” operations (e.g., reduceByKey) partition result RDDs
+   ⮚   More partitions = more parallel tasks
+   ⮚   Cluster will be under-utilized if there are too few partitions
+• You can control how many partitions
+   ⮚   Configure with the spark.default.parallelism property
+   ⮚   Optional numPartitions parameter in function call
+        o e.g., words.reduceByKey(lambda v1, v2: v1+v2, 15)
+• Controlling the Number of Partitions in RDDs
+   ⮚   Specify the number of partitions when data is read
+   ⮚   e.g., myRDD = sc.textFile(myfile, 5)
+   ⮚   Manual repartition: myRDD.repartition(5)
+                                                                        122
+Today’s Topics
+• Intro to Spark Scheduling & Spark Programming
+
+• Parallel Processing in Spark
+
+• Running a Spark Application
+
+• RDDs Persistence and Storage Levels
+
+
+
+
+                                                  123
+Spark on YARN -- Client mode (1)
+
+
+
+
+                                   124
+Spark on YARN -- Client mode (2)
+
+
+
+
+                                   125
+Spark on YARN -- Cluster mode (1)
+
+
+
+
+                                    126
+Spark on YARN -- Cluster mode (2)
+
+
+
+
+                                    127
+Spark on YARN -- Cluster mode (2)
+
+
+
+
+                                    128
+Running Spark Application: Local vs Cluster
+var counter = 0
+var rdd = sc.parallelize(data)
+
+rdd.foreach(x => counter += x)
+println("Counter value: " + counter)
+
+
+var counter = 0
+var rdd = sc.parallelize(data)
+                                       Behavior is Undefined
+// Wrong: Don't do this!!
+rdd.foreach(x => counter += x)
+                                       Accumulators
+println("Counter value: " + counter)
+
+                                                         129
+Running Spark Application Locally
+• Use spark-submit --master is the command/options
+  ⮚   Local options
+       o   local[*] – run locally with as many threads as cores (default)
+       o   local[n] – run locally with n threads
+       o   local – run locally with a single thread
+
+
+
+
+                                                                            130
+Running Spark Application on Cluster
+• Use spark-submit --master is the command/options
+  ⮚   Cluster options
+       o   yarn-cluster
+       o   spark://masternode:port (Spark Standalone)
+       o   mesos://masternode:port (Mesos)
+
+
+
+
+                                                        131
+Some Interesting Concepts
+• Accumulator: provides a mechanism for safely updating a variable
+  when execution is split up across worker nodes
+• Understanding Closures
+• Performance Tuning
+    ⮚   Shuffle Operations: Spark’s mechanism for re-distributing data so that it’s
+        grouped differently across partitions 🡪 involves copying data across
+        executors and machines (a complex and costly operation).
+    ⮚   Memory Tuning
+
+ https://spark.apache.org/docs/latest/rdd-programming-guide.html
+ https://spark.apache.org/docs/latest/tuning.html
+
+                                                                                      132
+Today’s Topics
+• Intro to Spark Scheduling & Spark Programming
+
+• Parallel Processing in Spark
+
+• Running a Spark Application
+
+• RDDs Persistence and Storage Levels
+
+
+
+
+                                                  133
+RDD Persistence
+• Persisting RDDs in memory (or caching) across operations → Reuses
+  in other actions → High performance (faster actions)
+   ⮚ Cachingis a fundamental technique to maximize performance of iterative
+    algorithms
+   ⮚ Using   persist() or cache() methods
+   ⮚ Spark’s   cache is fault-tolerant → Lineage graph
+• Storage Level: Storing (and replicating) persistent object in memory
+  or disk or serializable objects, etc.
+• Removing data: monitors cache usage on each node and drops out
+  old data partitions in a least-recently-used (LRU) fashion
+   ⮚ RDD.unpersist()
+
+                                                                              134
+RDD Persistence: When and Where
+• When should you persist a dataset?
+   ⮚ When     a dataset is likely to be re-used
+   ⮚ e.g.,   iterative algorithms, machine learning
+• How to choose a persistence level
+   ⮚ Memory    -- when possible, best performance (Save space by saving as
+     serialized objects in memory if necessary)
+   ⮚ Disk-- choose when recomputation is more expensive than disk read (e.g.,
+     expensive functions or filtering large datasets)
+   ⮚ Replication   -- choose when recomputation is more expensive than memory
+
+
+
+
+                                                                                135
+RDD Persistence: Example (1)
+• Each transformation operation creates
+  a new child RDD
+
+
+
+
+                                          136
+RDD Persistence: Example (2)
+• Each transformation operation creates
+  a new child RDD
+
+
+
+
+                                          137
+RDD Persistence: Example (3)
+• Spark keeps track of the parent RDD
+  for each new RDD
+• Child RDDs depend on their parents
+
+
+
+
+                                        138
+RDD Persistence: Example (4)
+• Action operations execute the parent
+  transformations
+
+
+
+
+                                         139
+RDD Persistence: Example (5)
+• Each action re-executes the lineage
+  transformations starting with the base
+  (By default)
+
+
+
+
+                                           140
+RDD Persistence: Example (6)
+• Each action re-executes the lineage
+  transformations starting with the base
+  (By default)
+
+
+
+
+                                           141
+RDD Persistence (1)
+• Persisting an RDD saves the data (by
+  default in memory)
+
+
+
+
+                                         142
+RDD Persistence (2)
+• Persisting an RDD saves the data (by
+  default in memory)
+
+
+
+
+                                         143
+RDD Persistence (3)
+• Persisting an RDD saves the data (by
+  default in memory)
+
+
+
+
+                                         144
+RDD Persistence (4)
+• Persisting an RDD saves the data (by
+  default in memory)
+
+
+
+
+                                         145
+RDD Persistence (5)
+• Persisting an RDD saves the data (by
+  default in memory)
+
+
+
+
+                                         146
+RDD Persistence (6)
+• Subsequent operations use saved data
+
+
+
+
+                                         147
+RDD Persistence (7)
+• Subsequent operations use saved data
+
+
+
+
+                                         148
+Memory Persistence
+• In-memory persistence is a suggestion to Spark
+  ⮚If not enough memory is available, persisted partitions will be
+    cleared from memory (Least recently used partitions cleared first)
+  ⮚Transformations will   be re-executed using the lineage when needed
+
+
+
+
+                                                                   149
+Distributed Persistence and Fault-tolerance (1)
+• RDD partitions are distributed across a cluster
+• By default, partitions are persisted in memory in Executor JVMs
+
+
+
+
+                                                                    150
+Distributed Persistence and Fault-tolerance (2)
+• What happens if a partition persisted in memory becomes unavailable?
+
+
+
+
+                                                                  151
+Distributed Persistence and Fault-tolerance (3)
+• The driver starts a new task to recompute the partition on a different
+  node
+• Lineage is preserved, data is never lost
+
+
+
+
+                                                                      152
+Persistence: Storage Levels
+• By default, the persist method stores data in memory only
+   ⮚ The   cache method is a synonym for default (memory) persist
+• The persist method offers other options called Storage Levels
+• Storage Levels let you control
+   ⮚ Storage   location
+   ⮚ Format    in memory
+   ⮚ Partition   replication
+
+
+
+
+                                                                    153
+Persistence: Storage Location
+• Storage location – where is the data stored?
+   ⮚ MEMORY_ONLY (default)      – same as cache
+   ⮚ MEMORY_AND_DISK       – Store partitions on disk if they do not fit in memory
+    (Called spilling)
+   ⮚ DISK_ONLY   – Store all partitions on disk
+
+
+
+
+                                                                                     154
+Persistence: Memory Format
+• Serialization – you can choose to serialize the data in memory
+   ⮚ MEMORY_ONLY_SER and           MEMORY_AND_DISK_SER
+   ⮚ Much     more space efficient
+   ⮚ Less    time efficient
+   ⮚ If   using Java or Scala, choose a fast serialization library (e.g. Kryo)
+
+
+
+
+                                                                                 155
+Persistence: Partition Replication
+• Replication -- store partitions on two nodes
+   ⮚ MEMORY_ONLY_2
+
+   ⮚ MEMORY_AND_DISK_2
+
+   ⮚ DISK_ONLY_2
+
+   ⮚ MEMORY_AND_DISK_SER_2
+
+   ⮚ DISK_ONLY_2
+
+   ⮚ You   can also define custom storage levels
+
+
+
+
+                                                   156
+Next Lectures
+• Spark SQL (DataFrame API)
+• Spark Streaming
+
+
+
+
+                              157
+COEN 242 -- BigData
+      Lecture 13
+Batch Processing vs Stream Processing
+• Batch processing and Bounded Data (known & finite size)
+  ⮚   e.g., Sorting operation in MapReduce
+• Delay in giving results → Latency is high
+
+• Stream data: data is incrementally made available over time
+   ⮚   e.g., Java’s FileInputStream, TCP connections, etc.
+
+• Files vs Events (or immutable objects)
+• File → Set of Records, Stream/Topic → Set of related events
+                                                                159
+Stream Processing System: Basic Terminology
+• A type of data processing engine that is designed with infinite
+  data sets in mind
+• Unbounded Data: infinite “streaming” data set
+• Bounded Data: finite “batch” data sets
+• Stream processing → Unbounded data processing
+
+• Low latency, approximate / speculative results?
+
+
+                                                                160
+Data Processing Patterns: Batching & Bounded Data
+
+
+
+
+                                                    161
+Data Processing Patterns: Batching & Unbounded Data
+UnBounded Data (Batch Processing): Fixed Windows vs Sessions
+
+
+  Fixed Windows
+
+
+
+
+    Sessions
+
+
+
+                                                               162
+Stream Processing: Events
+Event time vs Processing time
+• Event time → the time at which events
+  actually occurred
+• Processing time → the time at which
+  events are observed in the system
+
+
+
+
+                                          163
+Data Processing Patterns: Streaming & Unbounded (1)
+• Time-agnostic Processing: all relevant logic is data driven
+• Approximation Algorithms
+• Windowing (by Processing Time & Event Time)
+
+
+                           Filtering
+
+Time-agnostic Processing
+
+                          Inner-joins
+
+
+                                                                164
+Data Processing Patterns: Streaming & Unbounded (2)
+                           • Approximate top-N
+Approximation Algorithms
+                           • Streaming K-means
+
+
+
+
+                                                  165
+Windowing: Processing Time
+Processing Time
+ • Buffers up incoming data into windows until some amount of processing
+   time has passed
+ • Simple & Completeness is straightforward
+ • e.g., tracking the number of requests per second sent to a global-scale
+   Web service
+
+
+
+
+                                                                             166
+Windowing: Event Time
+Event Time
+• Need to observe a data source in finite chunks (reflects times at events happen)
+• Correct data if we cared about event times
+• Windows must often live longer (in processing time)
+
+
+
+
+                                                                             167
+Today’s Topics
+• Motivation
+• Spark Streaming
+
+
+
+
+                    168
+Spark Streaming Applications
+Many Big Data applications need to process large data streams in real time
+ • Continuous ETL
+ • Website monitoring
+ • Fraud detection
+ • Ad monetization
+ • Social media analysis
+ • Financial market trends
+
+
+
+
+                                                                      169
+BigData Streaming: Applications
+
+
+
+
+                                  170
+BigData Streaming: Challenges
+
+
+
+
+                                171
+Motivation: Spark Stream Processing (1)
+• Designed with Continuous Operator Model
+• Source & Sink Operators
+• Simple model
+
+Challenges:
+ • Fast failure & Straggler Recovery
+ • Load Balancing
+ • Unification of Streaming, Batch,
+   & Interactive workloads
+ • Advanced Analytics (e.g., ML)
+                                            172
+Motivation: Spark Stream Processing (2)
+
+
+
+
+                                          173
+What is Spark Streaming?
+
+
+
+
+                           174
+How does Spark Streaming Work?
+
+
+
+
+                                 175
+Spark D-Streaming Overview (1)
+• Discretizes the streaming data into     Windowing @Processing Time
+  tiny, sub-second micro-batches
+• Spark Streaming’s Receivers accept
+  data in parallel and buffer it in the
+  memory of Spark’s workers nodes
+• Spark engine runs short tasks (tens
+  of milliseconds) to process the
+  batches and output the results to
+  other systems
+
+
+                                                                       176
+Spark D-Streaming Overview (1)
+• Discretizes the streaming data into tiny, sub-second micro-batches
+
+
+                  Windowing @Processing Time
+
+
+
+
+                                                                       177
+Spark D-Streaming Overview (2)
+
+• Spark Streaming’s Receivers accept
+  data in parallel and buffer it in the
+  memory of Spark’s workers nodes
+• Spark engine runs short tasks (tens of
+  milliseconds) to process the batches
+  and output the results to other systems
+
+
+
+
+                                            178
+Spark Streaming Programming Model (DStreams)
+
+
+
+
+                                               179
+Spark Streaming: Dynamic Load Balancing
+
+
+
+
+                                          180
+Spark Streaming: Straggler Recovery
+
+
+
+
+                                      181
+Spark D-Streaming: Unification (Batch & Stream)
+• DStream is just a series of RDDs → Allows Interoperate of Batch
+  & Stream workloads
+• Example: join a DStream with a precomputed static dataset
+
+// Create data set from Hadoop file
+val dataset = sparkContext.hadoopFile("file")
+// Join each batch in stream with the dataset
+kafkaDStream.transform { batchRDD => batchRDD.join(dataset).filter(...) }
+
+
+• Batches of streaming data are stored in the Spark’s worker memory →
+  Allows Interactive querying
+                                                                       182
+Spark D-Streaming: Advanced Analytics (ML & SQL)
+Streaming + MLlib
+// Learn model offline
+val model = KMeans.train(dataset, ...)
+// Apply model online on stream val kafkaStream =
+KafkaUtils.createDStream(...)
+kafkaStream.map { event => model.predict(featurize(event))}
+
+
+Streaming + SQL
+RDDs generated by DStreams can be converted to DataFrames & queried with
+SQL (e.g., Spark SQL’s JDBC server)
+
+                                                                     183
+Spark D-Streaming Features
+• Latencies on the order of a few seconds or less
+• Scalability and efficient fault tolerance
+• Integrates batch and real-time processing
+• Uses the core Spark APIs
+
+
+
+
+                                                    184
+DStream (Discretized Stream)
+• A DStream is a sequence of RDDs representing a data stream
+
+
+
+
+                                                               185
+DStream Transformations (1)
+• DStream operations are applied to every RDD in the stream
+  ⮚   Executed once per duration
+• Two types of DStream operations
+  ⮚   Transformations: Create a new DStream from an existing one
+  ⮚   Output operations
+       o Write data (for example, to a file system, database, or console)
+       o Similar to RDD actions
+
+
+
+
+                                                                            186
+DStream Transformations (2)
+
+
+
+
+                              187
+DStream output Operations
+• Console output
+   ⮚   print (Scala) / pprint (Python)
+   ⮚   Optionally pass an integer to print another number of elements
+• File output
+   ⮚   saveAsTextFiles – save data as text
+   ⮚   saveAsObjectFiles – save as serialized object files
+• Executing other functions
+   ⮚   foreachRDD(function) -- performs a function on each RDD in the DStream
+   ⮚   Function input parameters
+        o   RDD – the RDD on which to perform the function
+        o   Time – optional, the time stamp of the RDD
+                                                                                188
+Saving as Files
+
+
+
+
+                  189
+Spark D-Streaming
+• Discretizes the streaming data into tiny, sub-second micro-batches
+
+
+                  Windowing @Processing Time
+
+
+
+
+                                                                       190
+Spark Stream Data Sources
+• Basic Data Sources
+   ⮚ Network socket
+   ⮚ Text file
+
+• Advanced Data Sources
+   ⮚ Apache Kafka
+   ⮚ Apache Flume
+
+   ⮚ Twitter
+
+   ⮚ ZeroMQ
+
+   ⮚ Amazon Kinesis
+
+   ⮚ and more coming in the
+     future…
+
+                              191
+Receiver-Based Data Sources
+• Most data sources are based on receivers
+   ⮚ Network data (e.g., from Kafka Broker) is received on a worker node
+   ⮚ Receiver distributes data (RDDs) to the cluster as partitions
+
+
+
+
+                                                                           192
+Data Buffering
+• Receivers buffer data until it is processed
+• Data must be processed fast enough that the buffer does not grow
+   ⮚ Manage by setting spark.streaming.backpressure.enabled = true
+
+
+Backpressure is an important concept in reactive stream processing systems. The idea is that if a
+component is struggling to keep up, it should communicate to upstream components and get them to
+reduce the load.
+In the context of Spark Streaming, the receiver is the upstream component which gets notified if the
+executors cannot keep up. There are many scenarios when this happens, e.g.:
+  ●   Streaming Source: Unexpected short burst of incoming messages in source system
+  ●   YARN: Lost executor due to node failure
+  ●   External Sink System: High load on external systems such as HBase leading to increased response times
+
+Without backpressure, microbatches queue up over time and the scheduling delay increases.
+                                                                                                              193
+Network Receiver
+Network Receiver: e.g., Socket Receiver
+Spark Execution Model (Basic)
+
+     RDD Objects           DAGScheduler                 TaskScheduler            Worker
+
+                                                           Cluster
+                                                           manager               Threads
+                     DAG                      TaskSet                     Task
+                                                                                  Block
+                                                                                 manager
+
+
+   rdd1.join(rdd2)         split graph into            launch tasks via      execute tasks
+     .groupBy(…)           stages of tasks             cluster manager
+     .filter(…)
+                           submit each                 retry failed or       store and serve
+  build operator DAG       stage as ready              straggling tasks      blocks
+
+                            agnostic to       stage     doesn’t know
+                                              failed
+                            operators!                  about stages
+Event Flow
+                                                                       graph of stages
+  runJob(targetRDD, partitions, func, listener)                       RDD partitioning
+                                                                          pipelining
+
+
+                                        DAGScheduler
+                                                                 task finish & stage failure
+             submitTasks(taskSet)                                          events
+
+
+                                         TaskScheduler
+                                                                            task placement
+                                 Task objects                              retries on failure
+                                                                              speculation
+                                                                            inter-job policy
+                                       Cluster or local runner
+Dstream Graph
+Dstream Graph → RDD Graph → Jobs
+Dstream Execution Model (Components)
+DStream Execution Model: Receiving Data
+DStream Execution Model: Job Scheduling
+DStream Execution Model: Job Scheduling
+RDD Check Pointing
+Why RDD Check Pointing is necessary?
+Why RDD Check Pointing is necessary?
+RDD Check Pointing Tradeoffs
+Example: Streaming Request Count
+
+
+
+
+                                   208
+Example: Configuring Streaming Context
+
+
+
+
+                                         209
+Example: Creating a DStream
+
+
+
+
+                              210
+Example: Dstream Transformations
+
+
+
+
+                                   211
+Example: DStream Result Output
+
+
+
+
+                                 212
+Example: Starting the Streams
+
+
+
+
+                                213
+Example: Stream Request Count (Recap)
+
+
+
+
+                                        214
+Example: Output (1)
+
+
+
+
+                      215
+Example: Output (2)
+
+
+
+
+                      216
+Example: Output (3)
+
+
+
+
+                      217
+Example: Get hashtags from Twitter (1)
+
+
+
+
+                                         218
+Example: Get hashtags from Twitter (2)
+
+
+
+
+                                         219
+Example: Get hashtags from Twitter (3)
+
+
+
+
+                                         220
+Example: Get hashtags from Twitter (4)
+
+
+
+
+                                         221
+Window-based Transformations
+
+
+
+
+                               222
+Spark Streaming: Summary
+• An extension of core Spark
+• Enables scalable, high-throughput, fault-tolerant stream processing of
+  live data streams (real-time processing)
+• Supports Java, Scala, and Python
+
+
+
+
+                                                                       223
+Spark Streaming Programming
+https://spark.apache.org/docs/latest/streaming-programming-guide.html
+
+
+
+
+                                                                   224
+COEN 242 -- BigData
+      Lecture 14
+Stream Processing -- Motivation
+Many big-data applications need to process large data streams in
+near-real time
+
+         Website monitoring
+                              Fraud detection
+                   Require tens to hundreds of nodes
+                                               Ad monetization
+
+
+                      Require second-scale latencies
+
+
+
+
+                                                                   226
+227
+Example: Computing Integer Sum
+
+
+
+
+                                 228
+Windowing
+
+
+
+
+            231
+Fixed Windows: Batch
+Batch Processing & Unbounded Data → 2 min Fixed Windows
+
+
+
+
+                                                          232
+Fixed Windows: Batch vs Micro-Batch
+
+
+
+
+                                      233
+Traditional Streaming Systems
+Continuous operator model                         mutable state
+• Each node runs an operator with       input
+  in-memory mutable state               records
+• For each input record, state is                  node 1
+  updated and new records are
+  sent out                              input                     node 3
+                                        records
+                                                   node 2
+• Mutable state is lost if node fails
+• Various techniques exist to make
+  state fault-tolerant
+
+                                                                           234
+Fault-tolerance in Traditional Systems (1)
+Node Replication [e.g. Borealis, Flux ]
+
+                                     • Separate set of “hot failover” nodes
+         input                         process the same data streams
+                                     • Synchronization protocols ensures
+         input
+                          sync         exact ordering of records in both sets
+                          protocol
+                                     • On failure, the system switches over
+           hot
+                                       to the failover nodes
+           failover
+           nodes
+
+                          Fast recovery, but 2x hardware cost
+
+                                                                         235
+Fault-tolerance in Traditional Systems (2)
+Upstream Backup [e.g. TimeStream, Storm ]
+
+ • Each node maintains backup of the
+   forwarded records since last checkpoint      input
+ • A “cold failover” node is maintained
+ • On failure, upstream nodes replay the        input
+                                                             replay
+   backup records serially to the failover
+   node to recreate the state                       backup
+
+                                                             cold failover
+       Only need 1 standby, but slow recovery                   node
+
+                                                                        236
+ Slow Nodes in Traditional Systems
+        Node Replication                       Upstream Backup
+
+input
+                                       input
+
+input
+                                       input
+
+
+
+
+                           Neither approach handles stragglers
+
+                                                                 237
+Spark DStream Processing: Goals
+
+• Scales to hundreds of nodes
+• Achieves second-scale latency
+• Tolerate node failures and stragglers
+• Sub-second fault and straggler recovery
+• Minimal overhead beyond base processing
+
+
+
+
+                                            238
+Why is it challenging?
+• Stateful continuous operators tightly integrate “computation” with
+  “mutable state”
+• Makes it harder to define clear boundaries when computation and
+  state can be moved around
+
+                            mutable
+                              state
+                             stateful
+               input                       output
+                           continuous
+              records                      records
+                            operator
+
+
+                                                                  239
+The Idea: Dissociate Computation from State
+• Make state immutable and break computation into small,
+  deterministic, stateless tasks
+• Defines clear boundaries where state and computation can be
+  moved around independently
+
+state 1               state 2               state 2
+          stateless             stateless
+            task                  task                stateless
+                                                        task
+input 1               input 2
+                                            input 3
+
+                                                                  240
+Batch Processing: MapReduce
+• Data into small partitions
+• Jobs into small, deterministic, stateless map / reduce tasks
+
+                    M
+                    MM
+                                                 RR
+
+                    M
+                    MM
+                                                 RR
+                    M
+                    MM
+                                                 RR
+ immutable          M
+                    M                                        immutable
+                     M
+input dataset                immutable                     output dataset
+                                                                        241
+                             map outputs
+Parallel Recovery
+
+ Failed tasks are re-executed on the other nodes in parallel
+
+
+                             M
+                             MM
+                                                 RR
+                                                   R
+                             M
+                             MMM
+                                                 RRR
+                             M
+                             MMM
+                                                 RR
+           immutable         M
+                             M                             immutable
+                              MM
+         input dataset                                   output dataset
+                         stateless          stateless
+                         map tasks        reduce tasks
+                                                                          242
+Spark Discretized Stream Processing (1)
+
+• Run a streaming computation as a series of small, deterministic
+  batch jobs
+• Store intermediate state data in cluster memory
+• Try to make batch sizes as small as possible to get second-scale
+  latencies (micro-batches)
+
+
+
+
+                                                                     243
+Example: Counting page views
+ Discretized Stream (DStream) is a sequence of immutable,
+ partitioned datasets
+  • Can be created from live data streams or by applying bulk, parallel
+    transformations on other DStreams
+
+
+                                                                  views   ones     counts
+                creating a DStream
+
+           views = readStream("http:...", "1 sec")     t: 0 - 1
+           ones = views.map(ev => (ev.url, 1))                      map   reduce
+           counts = ones.runningReduce((x,y) => x+y)
+                                                       t: 1 - 2
+                   transformation
+
+                                                                                            244
+Fine-grained Lineage
+
+                                             views   ones     counts
+
+
+  • Datasets track fine-grained   t: 0 - 1
+
+    operation lineage                          map   reduce
+
+
+  • Datasets are periodically     t: 1 - 2
+
+    checkpointed asynchronously
+    to prevent long lineages
+                                  t: 2 - 3
+
+
+
+
+                                                                       245
+Parallel Fault Recovery
+
+• Lineage is used to recompute                  views   ones     counts
+  partitions lost due to failures
+                                     t: 0 - 1
+
+• Datasets on different time                      map   reduce
+
+  steps recomputed in parallel
+                                     t: 1 - 2
+
+• Partitions within a dataset also
+  recomputed in parallel             t: 2 - 3
+
+
+
+
+                                                                          246
+Comparison to Upstream Backup
+
+                                                  Discretized Stream
+      Upstream Backup
+                                                      Processing
+                                                          views   ones   counts
+                             parallelism
+                                         t: 0 - 1
+                Faster       withinthan
+                         recovery   aupstream     backup,
+                             batch
+                without the 2x cost of node replication
+                                 parallelism
+                                 across time   t: 1 - 2
+                                 intervals
+
+
+               state                           t: 2 - 3
+
+      stream replayed serially
+                                                                                  247
+Parallel Straggler Recovery
+ • Straggler mitigation techniques
+    • Detect slow tasks (e.g. 2X slower than other tasks)
+    • Speculatively launch more copies of the tasks in parallel on other
+      machines
+
+
+ • Masks the impact of slow nodes on the progress of the system
+
+
+
+
+                                                                           248
+Comparisons
+
+
+
+
+              249
+Spark D-Streaming
+• Discretizes the streaming data into tiny, sub-second micro-batches
+
+
+                  Windowing @Processing Time
+
+
+
+
+                                                                       250
+Spark Stream Data Sources
+• Basic Data Sources
+   ⮚ Network socket
+   ⮚ Text file
+
+• Advanced Data Sources
+   ⮚ Apache Kafka
+   ⮚ Apache Flume
+
+   ⮚ Twitter
+
+   ⮚ ZeroMQ
+
+   ⮚ Amazon Kinesis
+
+   ⮚ and more coming in the
+     future…
+
+                              251
+Receiver-Based Data Sources
+• Most data sources are based on receivers
+   ⮚ Network data (e.g., from Kafka Broker) is received on a worker node
+   ⮚ Receiver distributes data (RDDs) to the cluster as partitions
+
+
+
+
+                                                                           252
+Data Buffering
+• Receivers buffer data until it is processed
+• Data must be processed fast enough that the buffer does not grow
+   ⮚ Manage by setting spark.streaming.backpressure.enabled = true
+
+
+Backpressure is an important concept in reactive stream processing systems. The idea is that if a
+component is struggling to keep up, it should communicate to upstream components and get them to
+reduce the load.
+In the context of Spark Streaming, the receiver is the upstream component which gets notified if the
+executors cannot keep up. There are many scenarios when this happens, e.g.:
+  ●   Streaming Source: Unexpected short burst of incoming messages in source system
+  ●   YARN: Lost executor due to node failure
+  ●   External Sink System: High load on external systems such as HBase leading to increased response times
+
+Without backpressure, microbatches queue up over time and the scheduling delay increases.
+                                                                                                              253
+Network Receiver
+Network Receiver: e.g., Socket Receiver
+Spark Execution Model (Basic)
+
+     RDD Objects           DAGScheduler                 TaskScheduler            Worker
+
+                                                           Cluster
+                                                           manager               Threads
+                     DAG                      TaskSet                     Task
+                                                                                  Block
+                                                                                 manager
+
+
+   rdd1.join(rdd2)         split graph into            launch tasks via      execute tasks
+     .groupBy(…)           stages of tasks             cluster manager
+     .filter(…)
+                           submit each                 retry failed or       store and serve
+  build operator DAG       stage as ready              straggling tasks      blocks
+
+                            agnostic to       stage     doesn’t know
+                                              failed
+                            operators!                  about stages
+Event Flow
+                                                                       graph of stages
+  runJob(targetRDD, partitions, func, listener)                       RDD partitioning
+                                                                          pipelining
+
+
+                                        DAGScheduler
+                                                                 task finish & stage failure
+             submitTasks(taskSet)                                          events
+
+
+                                         TaskScheduler
+                                                                            task placement
+                                 Task objects                              retries on failure
+                                                                              speculation
+                                                                            inter-job policy
+                                       Cluster or local runner
+Dstream Graph
+Dstream Graph → RDD Graph → Jobs
+Dstream Execution Model (Components)
+DStream Execution Model: Receiving Data
+DStream Execution Model: Job Scheduling
+DStream Execution Model: Job Scheduling
+RDD Check Pointing
+Why RDD Check Pointing is necessary?
+Why RDD Check Pointing is necessary?
+RDD Check Pointing Tradeoffs
+Example: Streaming Request Count
+
+
+
+
+                                   268
+Example: Configuring Streaming Context
+
+
+
+
+                                         269
+Example: Creating a DStream
+
+
+
+
+                              270
+Example: Dstream Transformations
+
+
+
+
+                                   271
+Example: DStream Result Output
+
+
+
+
+                                 272
+Example: Starting the Streams
+
+
+
+
+                                273
+Example: Stream Request Count (Recap)
+
+
+
+
+                                        274
+Example: Output (1)
+
+
+
+
+                      275
+Example: Output (2)
+
+
+
+
+                      276
+Example: Output (3)
+
+
+
+
+                      277
+Example: Get hashtags from Twitter (1)
+
+
+
+
+                                         278
+Example: Get hashtags from Twitter (2)
+
+
+
+
+                                         279
+Example: Get hashtags from Twitter (3)
+
+
+
+
+                                         280
+Example: Get hashtags from Twitter (4)
+
+
+
+
+                                         281
+Window-based Transformations
+
+
+
+
+                               282
+Spark Dstreams: Pain Points
+
+
+
+
+ Spark Structured Streaming (DataSets)
+                                         283
+Summary: Spark Streaming (DStreams)
+Many important apps must process large data
+ streams at second-scale latencies
+ • e.g., Site statistics, intrusion detection, online ML
+To build and scale these apps:
+ • Integration: with offline analytical stack
+ • Fault-tolerance: both for crashes and stragglers        • DStreams: a sequence of RDDs 🡪 Divide
+ • Efficiency: low cost beyond base processing               input data stream into micro-batches
+Goals                                                      • Events: includes a Timestamp
+• Fast failure & Straggler Recovery                        • Windowing @Processing-time
+
+• Dynamic Load Balancing
+• Unification of Streaming, Batch, &
+  Interactive workloads
+• Advanced Analytics (e.g., ML)
+                                                                                                     284
+Spark Performance Tuning
+
+
+
+
+                           285
+Spark Performance Tuning: Common Issues
+
+
+
+
+                                          286
+Performance Tuning: Importance of
+Partitions
+
+
+
+
+                                    287
+Performance Tuning: Memory Problems
+
+
+
+
+                                      288
+Spark Performance Tuning
+• Number of Partitions
+• Number of Tasks
+• Number of Executors
+• Number of CPU resources (cores) & Memory
+• Serialization techniques
+• Caching/Persistence
+
+
+
+
+                                             289
+
